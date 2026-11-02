@@ -1,0 +1,283 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SMART DIGITAL MARKET</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#17202a}
+header{background:#123d2b;color:white;padding:20px 15px;text-align:center}
+header h1{font-size:23px;margin:5px}
+header p{margin:5px;color:#d5f5e3}
+nav{display:flex;justify-content:space-around;background:white;padding:14px 4px;position:sticky;top:0;z-index:5;box-shadow:0 2px 8px #ddd}
+nav button{border:0;background:none;font-weight:bold;color:#174b35}
+.container{padding:15px;max-width:850px;margin:auto}
+.search{width:100%;padding:14px;border:1px solid #ddd;border-radius:10px;font-size:16px}
+h2{color:#174b35}
+.categories{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.cat{padding:17px;background:white;border-radius:12px;text-align:center;box-shadow:0 2px 7px #ddd;cursor:pointer}
+.products{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.product{background:white;border-radius:12px;padding:12px;box-shadow:0 2px 8px #ddd}
+.product img{width:100%;height:120px;object-fit:contain;background:#f1f3f4;border-radius:8px}
+.product h3{font-size:15px}
+.price{font-weight:bold;color:#087b43}
+.add{background:#087b43;color:white;border:0;padding:10px;border-radius:8px;width:100%;margin-top:8px}
+.panel{background:white;padding:16px;border-radius:12px;margin:15px 0;box-shadow:0 2px 8px #ddd}
+input{width:100%;padding:12px;margin:7px 0;border:1px solid #ccc;border-radius:8px}
+.action{padding:12px;background:#087b43;color:white;border:0;border-radius:8px;margin:5px 3px}
+.secondary{background:#555}
+.hidden{display:none}
+footer{text-align:center;padding:25px;background:#123d2b;color:white;margin-top:30px}
+small{color:#666}
+@media(max-width:380px){.products{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🛒 SMART DIGITAL MARKET</h1>
+<p>Your Trusted Online Shopping Store</p>
+</header>
+
+<nav>
+<button onclick="show('home')">Home</button>
+<button onclick="show('categories')">Categories</button>
+<button onclick="show('cart')">Cart 🛒</button>
+<button onclick="show('account')">Profile</button>
+</nav>
+
+<main class="container">
+
+<section id="home">
+<h2>Welcome to Our Store</h2>
+<input class="search" id="search" placeholder="🔍 Search products..." oninput="renderProducts()">
+<h2>Shop by Category</h2>
+<div class="categories">
+<div class="cat" onclick="filter('Grocery')">🛍️<br>Grocery</div>
+<div class="cat" onclick="filter('Stationery')">📚<br>Stationery</div>
+<div class="cat" onclick="filter('Electronics')">📱<br>Electronics</div>
+<div class="cat" onclick="filter('Library')">📖<br>Library</div>
+</div>
+<h2 id="productTitle">Our Products</h2>
+<div id="products" class="products">Loading products...</div>
+</section>
+
+<section id="categories" class="hidden">
+<h2>All Categories</h2>
+<div class="categories">
+<div class="cat" onclick="filter('Grocery')">🛍️ Grocery</div>
+<div class="cat" onclick="filter('Stationery')">📚 Stationery</div>
+<div class="cat" onclick="filter('Electronics')">📱 Electronics</div>
+<div class="cat" onclick="filter('Library')">📖 Library</div>
+</div>
+<button class="action secondary" onclick="filter('All')">Show All Products</button>
+</section>
+
+<section id="cart" class="hidden">
+<h2>My Shopping Cart</h2>
+<div id="cartItems"></div>
+<h3 id="total">Total: ₹0</h3>
+<p>Checkout will be enabled after secure order setup.</p>
+</section>
+
+<section id="account" class="hidden">
+<h2>Customer Account</h2>
+<div class="panel" id="authBox">
+<h3>Login / Registration</h3>
+<input id="email" type="email" placeholder="Email address">
+<input id="password" type="password" placeholder="Password (minimum 6 characters)">
+<button class="action" onclick="signup()">Create Account</button>
+<button class="action secondary" onclick="login()">Login</button>
+<p id="authMessage"></p>
+</div>
+<div class="panel hidden" id="profileBox">
+<h3>My Profile</h3>
+<p id="userEmail"></p>
+<button class="action secondary" onclick="logout()">Logout</button>
+</div>
+</section>
+
+</main>
+
+<footer>
+<h3>SMART DIGITAL MARKET</h3>
+<p>Online Shopping | Grocery | Stationery | Electronics | Library</p>
+<p>Help Center: +91 91018 73368</p>
+<p>WhatsApp: +91 7635844878</p>
+<p>© 2026 SMART DIGITAL MARKET</p>
+</footer>
+
+<script>
+const SUPABASE_URL = "https://zflumakjreionyqgetdo.supabase.co";
+
+// এখানে নিজের Publishable Key বসাবে। Secret Key নয়।
+const SUPABASE_KEY = "PASTE_YOUR_PUBLISHABLE_KEY_HERE";
+
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+let products = [];
+let cart = [];
+let selectedCategory = "All";
+let currentUser = null;
+
+function show(id){
+  document.querySelectorAll("main section").forEach(s=>s.classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
+  if(id==="cart") renderCart();
+}
+
+function filter(category){
+  selectedCategory=category;
+  show("home");
+  document.getElementById("productTitle").textContent=
+    category==="All"?"Our Products":category+" Products";
+  renderProducts();
+}
+
+async function loadProducts(){
+  const box=document.getElementById("products");
+  if(SUPABASE_KEY==="PASTE_YOUR_PUBLISHABLE_KEY_HERE"){
+    box.innerHTML="<p>Please add your Supabase Publishable Key.</p>";
+    return;
+  }
+
+  const {data,error}=await db.from("products")
+    .select("id,name,category,description,price,image_url,stock")
+    .eq("active",true)
+    .order("id",{ascending:false});
+
+  if(error){
+    box.innerHTML="<p>Products could not load. Please check your connection and database.</p>";
+    console.error(error);
+    return;
+  }
+
+  products=data||[];
+  renderProducts();
+}
+
+function renderProducts(){
+  const term=document.getElementById("search").value.toLowerCase();
+  const list=products.filter(p=>
+    (selectedCategory==="All"||p.category===selectedCategory)&&
+    p.name.toLowerCase().includes(term)
+  );
+
+  const box=document.getElementById("products");
+  if(!list.length){
+    box.innerHTML="<p>No products available yet.</p>";
+    return;
+  }
+
+  box.innerHTML=list.map(p=>`
+    <div class="product">
+      <img src="${escapeHTML(p.image_url||"")}" alt="Product"
+      onerror="this.style.display='none'">
+      <h3>${escapeHTML(p.name)}</h3>
+      <small>${escapeHTML(p.category)}</small>
+      <p class="price">₹${Number(p.price).toFixed(2)}</p>
+      <p><small>Stock: ${Number(p.stock)}</small></p>
+      <button class="add" onclick="addCart(${p.id})"
+      ${Number(p.stock)<=0?"disabled":""}>Add to Cart</button>
+    </div>
+  `).join("");
+}
+
+function escapeHTML(value){
+  return String(value??"").replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",
+    '"':"&quot;","'":"&#39;"
+  })[c]);
+}
+
+function addCart(id){
+  const p=products.find(x=>x.id===id);
+  if(!p)return;
+  const item=cart.find(x=>x.id===id);
+  if(item){
+    if(item.quantity>=Number(p.stock)){
+      alert("Not enough stock");
+      return;
+    }
+    item.quantity++;
+  }else{
+    cart.push({id:p.id,name:p.name,price:Number(p.price),quantity:1});
+  }
+  alert("Product added to cart!");
+}
+
+function renderCart(){
+  const box=document.getElementById("cartItems");
+  if(!cart.length){
+    box.innerHTML="<p>Your cart is empty.</p>";
+    document.getElementById("total").textContent="Total: ₹0";
+    return;
+  }
+  box.innerHTML=cart.map(x=>`
+    <div class="panel">
+      <b>${escapeHTML(x.name)}</b>
+      <p>₹${x.price} × ${x.quantity}</p>
+      <button class="action secondary" onclick="removeCart(${x.id})">Remove</button>
+    </div>
+  `).join("");
+  const total=cart.reduce((s,x)=>s+x.price*x.quantity,0);
+  document.getElementById("total").textContent="Total: ₹"+total.toFixed(2);
+}
+
+function removeCart(id){
+  cart=cart.filter(x=>x.id!==id);
+  renderCart();
+}
+
+async function signup(){
+  const email=document.getElementById("email").value.trim();
+  const password=document.getElementById("password").value;
+  const msg=document.getElementById("authMessage");
+  if(!email||password.length<6){
+    msg.textContent="Enter a valid email and password of at least 6 characters.";
+    return;
+  }
+  const {error}=await db.auth.signUp({email,password});
+  msg.textContent=error?error.message:"Registration request sent. Check your email for confirmation.";
+}
+
+async function login(){
+  const email=document.getElementById("email").value.trim();
+  const password=document.getElementById("password").value;
+  const msg=document.getElementById("authMessage");
+  const {data,error}=await db.auth.signInWithPassword({email,password});
+  if(error){msg.textContent=error.message;return;}
+  currentUser=data.user;
+  updateAccount();
+}
+
+async function logout(){
+  await db.auth.signOut();
+  currentUser=null;
+  updateAccount();
+}
+
+function updateAccount(){
+  document.getElementById("authBox").classList.toggle("hidden",!!currentUser);
+  document.getElementById("profileBox").classList.toggle("hidden",!currentUser);
+  document.getElementById("userEmail").textContent=currentUser?currentUser.email:"";
+}
+
+async function checkSession(){
+  const {data}=await db.auth.getSession();
+  currentUser=data.session?.user||null;
+  updateAccount();
+}
+
+checkSession();
+loadProducts();
+</script>
+</body>
+</html>
+￼Enter
