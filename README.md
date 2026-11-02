@@ -132,3 +132,35 @@ loadProducts();
 </script>
 </body>
 </html>
+<section id="customer-login" style="max-width:420px;margin:30px auto;padding:20px;background:white;border-radius:12px;box-shadow:0 2px 10px #ddd">
+  <h2 style="color:#075e45;text-align:center">Customer Login</h2>
+  <p>Mobile Number</p>
+  <div style="display:flex;gap:8px">
+    <input value="+91" readonly style="width:55px;padding:12px">
+    <input id="customerMobile" type="tel" maxlength="10" placeholder="10 digit mobile number" style="flex:1;min-width:0;padding:12px">
+  </div>
+  <button type="button" onclick="demoSendOTP()" style="margin-top:12px">Send OTP</button>
+  <p id="otpMessage" style="color:#075e45"></p>
+  <p>Enter OTP</p>
+  <input id="customerOTP" type="text" maxlength="6" placeholder="Enter demo OTP" style="width:100%;padding:12px">
+  <button type="button" onclick="demoVerifyOTP()" style="margin-top:12px">Verify OTP</button>
+  <p id="loginResult"></p>
+</section>
+
+<script>
+function demoSendOTP(){
+  const mobile=document.getElementById("customerMobile").value.trim();
+  const message=document.getElementById("otpMessage");
+  if(!/^[6-9][0-9]{9}$/.test(mobile)){
+    message.textContent="Enter a valid 10-digit mobile number.";
+    return;
+  }
+  message.textContent="Demo only: Real SMS OTP is not connected yet.";
+}
+function demoVerifyOTP(){
+  document.getElementById("loginResult").textContent=
+    "Real OTP verification is not connected. Please wait for secure setup.";
+}
+</script>
+</body>
+</html>
